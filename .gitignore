@@ -4,3 +4,4 @@ wav48
 
 # Pretrained weights
 mdctGAN
+*.out

@@ -157,6 +157,17 @@ class AudioTestDataset(BaseDataset):
     def read_audio(self):
         try:
             self.raw_audio, self.in_sampling_rate = torchaudio.load(self.dataroot)
+
+            # Check if the target sample rate is 48000 Hz
+            # If not, resample the audio (original sample rate is 48000 Hz) to target sample rate
+            if self.in_sampling_rate != self.hr_sampling_rate:
+                self.raw_audio = aF.resample(
+                    waveform=self.raw_audio,
+                    orig_freq=self.in_sampling_rate,
+                    new_freq=self.hr_sampling_rate,
+                )
+                self.in_sampling_rate = self.hr_sampling_rate
+
             self.audio_len = self.raw_audio.size(-1)
             self.raw_audio += 1e-4 - torch.mean(self.raw_audio)
             print("Audio length:", self.audio_len)
@@ -214,6 +225,7 @@ class AudioTestDataset(BaseDataset):
             noise_var = signal_power / 10 ** (self.snr / 10)
             noise = torch.sqrt(noise_var) / noise.std() * noise
             self.lr_audio = self.lr_audio + noise
+
         self.seg_audio = self.seg_pad_audio(self.lr_audio)
 
 

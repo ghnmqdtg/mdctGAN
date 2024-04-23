@@ -5,7 +5,6 @@ matplotlib
 numpy
 Pillow
 scipy
-torch
-torchaudio
-torchvision
 torch_scatter
+tensorboard
+pandas

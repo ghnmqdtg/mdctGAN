@@ -1,9 +1,15 @@
 #!/bin/bash
 
+#Batch Job Paremeters
+#SBATCH --nodes=1
+#SBATCH --gpus-per-node=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --account=MST112230
+
 python train.py \
-    --name your_training_name \
-    --dataroot /home/neoncloud/VCTK-Corpus/train.csv --evalroot /home/neoncloud/VCTK-Corpus/test.csv \
-    --lr_sampling_rate 16000 --sr_sampling_rate 48000 \
+    --name mdct_2_to_16 \
+    --dataroot ./data/train.csv --evalroot ./data/test.csv \
+    --lr_sampling_rate 2000 --sr_sampling_rate 16000 \
     --batchSize 20 \
     --gpu_id 0 --fp16 --nThreads 16 --lr 1.5e-4 \
     --arcsinh_transform --abs_spectro --arcsinh_gain 1000 --center \

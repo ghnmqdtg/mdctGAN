@@ -18,6 +18,9 @@ dataset_size = len(data_loader)
 model = create_model(opt)
 print("#audio segments = %d" % dataset_size)
 
+print(
+    f"Input sample rate: {opt.lr_sampling_rate}, Output sample rate: {opt.hr_sampling_rate}"
+)
 
 # Forward pass
 spectro_mag = []
