@@ -1,2 +1,6 @@
 checkpoints
 */__pycache__
+wav48
+
+# Pretrained weights
+mdctGAN
