@@ -238,11 +238,11 @@ if __name__ == "__main__":
     # Convert to [mean, std, mean, std]
     results = results.flatten().tolist()
     # Add sample rate to the beginning of the list
-    results.insert(0, opt.hr_sampling_rate)
+    results.insert(0, opt.lr_sampling_rate)
 
-    if opt.hr_sampling_rate == 48000:
+    if opt.lr_sampling_rate == 48000:
         save_results_to_csv(results, "results_48kHz.csv")
-    elif opt.hr_sampling_rate == 16000:
+    elif opt.lr_sampling_rate == 16000:
         save_results_to_csv(results, "results_16kHz.csv")
     else:
         save_results_to_csv(results)
