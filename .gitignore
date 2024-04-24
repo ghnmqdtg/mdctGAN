@@ -4,4 +4,6 @@ wav48
 
 # Pretrained weights
 mdctGAN
+# Generated files and directories
 *.out
+test_samples

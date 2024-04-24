@@ -158,21 +158,19 @@ if __name__ == "__main__":
                 base_lsd_lf_list.append(base_lsd_lf)
 
                 if epoch == 0:
+                    output_dir = (
+                        f"./test_samples/{opt.hr_sampling_rate}/{opt.lr_sampling_rate}"
+                    )
+                    os.makedirs(output_dir, exist_ok=True)
                     # Save the audio files
                     sr_path = os.path.join(
-                        opt.checkpoints_dir,
-                        opt.name,
-                        f"{data['filename'][0][:-4]}_up.wav",
+                        output_dir, f"{data['filename'][0][:-4]}_up.wav"
                     )
                     lr_path = os.path.join(
-                        opt.checkpoints_dir,
-                        opt.name,
-                        f"{data['filename'][0][:-4]}_down.wav",
+                        output_dir, f"{data['filename'][0][:-4]}_down.wav"
                     )
                     hr_path = os.path.join(
-                        opt.checkpoints_dir,
-                        opt.name,
-                        f"{data['filename'][0][:-4]}_orig.wav",
+                        output_dir, f"{data['filename'][0][:-4]}_orig.wav"
                     )
                     # Save audio in 16-bit PCM format using torchaudio
                     torchaudio.save(
