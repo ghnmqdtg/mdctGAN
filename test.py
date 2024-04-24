@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     results = []
     # Run for 5 epochs
-    for epoch in range(5):
+    for epoch in range(3):
         # Define lists to accumulate results
         snr_list = []
         base_snr_list = []
