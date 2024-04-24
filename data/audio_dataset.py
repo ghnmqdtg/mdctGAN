@@ -142,39 +142,99 @@ class AudioTestDataset(BaseDataset):
         self.add_noise = opt.add_noise
         self.snr = opt.snr
 
-        self.read_audio()
-        self.post_processing()
-
-    def __len__(self):
-        return self.seg_audio.size(0)
+        self.audio_files = self.get_files(self.dataroot)
+        # Initialize index to keep track of the current file
+        self.index = 0
+        # Initialize
+        raw_audio, audio_len = self.read_audio()
+        seg_audio = self.post_processing(raw_audio)
 
     def name(self):
         return "AudioMDCTSpectrogramTestDataset"
 
+    def __len__(self):
+        return len(self.audio_files)
+
     def __getitem__(self, idx):
-        return {"LR_audio": self.seg_audio[idx, :].squeeze(0)}
+        self.index = idx
+        raw_audio, audio_len = self.read_audio()
+        lr_audio, seg_audio = self.post_processing(raw_audio)
+        return {
+            "raw_audio": raw_audio,
+            "lr_audio": lr_audio,
+            "seg_audio": seg_audio,
+            "auido_len": audio_len,
+        }
+
+    def get_files(self, file_path):
+        file_list = []
+        if file_path.endswith(".csv"):
+            print("Using csv file list")
+            root, csv_file = os.path.split(file_path)
+            with open(file_path, "r") as file:
+                csv_reader = csv.reader(file, delimiter=",")
+                for row in csv_reader:
+                    file_list.append(os.path.join(root, row[0]))
+                # Remove the header
+                file_list.pop(0)
+        elif os.path.isdir(file_path):
+            print("Searching for audio files")
+            for root, _, files in os.walk(file_path):
+                for name in files:
+                    if name.endswith((".wav", ".mp3", ".flac")):
+                        file_list.append(os.path.join(root, name))
+        else:
+            file_list = [file_path]
+
+        print(f"Found {len(file_list)} files")
+        return file_list
 
     def read_audio(self):
-        try:
-            self.raw_audio, self.in_sampling_rate = torchaudio.load(self.dataroot)
+        audio_path = self.audio_files[self.index]
+        raw_audio, self.in_sampling_rate = torchaudio.load(audio_path)
 
-            # Check if the target sample rate is 48000 Hz
-            # If not, resample the audio (original sample rate is 48000 Hz) to target sample rate
-            if self.in_sampling_rate != self.hr_sampling_rate:
-                self.raw_audio = aF.resample(
-                    waveform=self.raw_audio,
-                    orig_freq=self.in_sampling_rate,
-                    new_freq=self.hr_sampling_rate,
-                )
-                self.in_sampling_rate = self.hr_sampling_rate
+        # Check if the target sample rate is 48000 Hz
+        # If not, resample the audio (original sample rate is 48000 Hz) to target sample rate
+        if self.in_sampling_rate != self.hr_sampling_rate:
+            raw_audio = aF.resample(
+                waveform=raw_audio,
+                orig_freq=self.in_sampling_rate,
+                new_freq=self.hr_sampling_rate,
+            )
+            self.in_sampling_rate = self.hr_sampling_rate
 
-            self.audio_len = self.raw_audio.size(-1)
-            self.raw_audio += 1e-4 - torch.mean(self.raw_audio)
-            print("Audio length:", self.audio_len)
-        except:
-            self.raw_audio = []
-            print("load audio failed")
-            exit(0)
+        audio_len = raw_audio.size(-1)
+        raw_audio += 1e-4 - torch.mean(raw_audio)
+        # print("Audio length:", audio_len)
+        return raw_audio.squeeze(0), audio_len
+
+    def post_processing(self, raw_audio):
+        if self.is_lr_input:
+            lr_audio = aF.resample(
+                waveform=raw_audio,
+                orig_freq=self.in_sampling_rate,
+                new_freq=self.hr_sampling_rate,
+            )
+        else:
+            lr_audio = aF.resample(
+                waveform=raw_audio,
+                orig_freq=self.in_sampling_rate,
+                new_freq=self.lr_sampling_rate,
+            )
+            lr_audio = aF.resample(
+                waveform=lr_audio,
+                orig_freq=self.lr_sampling_rate,
+                new_freq=self.hr_sampling_rate,
+            )
+        if self.add_noise:
+            noise = torch.randn(lr_audio.size())
+            noise = noise - noise.mean()
+            signal_power = torch.sum(lr_audio**2) / self.segment_length
+            noise_var = signal_power / 10 ** (self.snr / 10)
+            noise = torch.sqrt(noise_var) / noise.std() * noise
+            lr_audio = lr_audio + noise
+
+        return lr_audio, self.seg_pad_audio(lr_audio)
 
     def seg_pad_audio(self, audio):
         audio = audio.squeeze(0)
@@ -199,34 +259,6 @@ class AudioTestDataset(BaseDataset):
             audio = audio.unsqueeze(0)
 
         return audio
-
-    def post_processing(self):
-        if self.is_lr_input:
-            self.lr_audio = aF.resample(
-                waveform=self.raw_audio,
-                orig_freq=self.in_sampling_rate,
-                new_freq=self.hr_sampling_rate,
-            )
-        else:
-            self.lr_audio = aF.resample(
-                waveform=self.raw_audio,
-                orig_freq=self.in_sampling_rate,
-                new_freq=self.lr_sampling_rate,
-            )
-            self.lr_audio = aF.resample(
-                waveform=self.lr_audio,
-                orig_freq=self.lr_sampling_rate,
-                new_freq=self.hr_sampling_rate,
-            )
-        if self.add_noise:
-            noise = torch.randn(self.lr_audio.size())
-            noise = noise - noise.mean()
-            signal_power = torch.sum(self.lr_audio**2) / self.segment_length
-            noise_var = signal_power / 10 ** (self.snr / 10)
-            noise = torch.sqrt(noise_var) / noise.std() * noise
-            self.lr_audio = self.lr_audio + noise
-
-        self.seg_audio = self.seg_pad_audio(self.lr_audio)
 
 
 class AudioAppDataset(AudioTestDataset):

@@ -6,10 +6,15 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --account=MST112230
 
+INPUT_SR_IN_K=12
+OUTPUT_SR_IN_K=16
+INPUT_SR=$(($INPUT_SR_IN_K * 1000))
+OUTPUT_SR=$(($OUTPUT_SR_IN_K * 1000))
+
 python train.py \
-    --name mdct_2_to_16 \
+    --name mdctGAN_${INPUT_SR_IN_K}_to_${OUTPUT_SR_IN_K} \
     --dataroot ./data/train.csv --evalroot ./data/test.csv \
-    --lr_sampling_rate 2000 --sr_sampling_rate 16000 --hr_sampling_rate 16000 \
+    --lr_sampling_rate $INPUT_SR --sr_sampling_rate $OUTPUT_SR --hr_sampling_rate $OUTPUT_SR \
     --batchSize 20 \
     --gpu_id 0 --fp16 --nThreads 16 --lr 1.5e-4 \
     --arcsinh_transform --abs_spectro --arcsinh_gain 1000 --center \

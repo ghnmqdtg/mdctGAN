@@ -203,91 +203,49 @@ def compute_matrics(hr_audio, lr_audio, sr_audio, opt):
     device = sr_audio.device
     hr_audio = hr_audio.to(device)
     lr_audio = lr_audio.to(device)
+    # Highcut frequency
+    hf = int(1025 * (opt.lr_sampling_rate / opt.sr_sampling_rate))
 
-    # Calculate error
-    mse = ((sr_audio - hr_audio) ** 2).mean().item()
+    def cal_snr(pred, target):
+        return (
+            20
+            * torch.log10(
+                torch.norm(target, dim=-1)
+                / torch.norm(pred - target, dim=-1).clamp(min=1e-8)
+            )
+        ).mean()
+
+    def STFTMag(audio):
+        spec = aF.spectrogram(
+            audio,
+            n_fft=2 * opt.n_fft,
+            hop_length=2 * opt.hop_length,
+            win_length=2 * opt.win_length,
+            window=kbdwin(2 * opt.win_length).to(device),
+            center=opt.center,
+            pad=0,
+            power=2,
+            normalized=False,
+        )
+        return spec
+
+    def cal_lsd(pred, target, hf):
+        sp = torch.log10(STFTMag(pred).square().clamp(1e-8))
+        st = torch.log10(STFTMag(target).square().clamp(1e-8))
+
+        return (
+            (sp - st).square().mean(dim=1).sqrt().mean(),
+            (sp[:, hf:, :] - st[:, hf:, :]).square().mean(dim=1).sqrt().mean(),
+            (sp[:, :hf, :] - st[:, :hf, :]).square().mean(dim=1).sqrt().mean(),
+        )
 
     # Calculate SNR
-    snr_sr = (
-        10
-        * torch.log10(
-            torch.sum(hr_audio**2, dim=-1)
-            / torch.sum((sr_audio - hr_audio) ** 2, dim=-1)
-        )
-        .mean()
-        .item()
-    )
-    snr_lr = (
-        10
-        * torch.log10(
-            torch.sum(hr_audio**2, dim=-1)
-            / torch.sum((lr_audio - hr_audio) ** 2, dim=-1)
-        )
-        .mean()
-        .item()
-    )
+    snr = cal_snr(sr_audio, hr_audio)
+    base_snr = cal_snr(lr_audio, hr_audio)
+    lsd, lsd_hf, lsd_lf = cal_lsd(sr_audio, hr_audio, hf)
+    base_lsd, base_lsd_hf, base_lsd_lf = cal_lsd(lr_audio, hr_audio, hf)
 
-    # Calculate segmental SNR
-    # ssnr_sr = pysepm.SNRseg(clean_speech=hr_audio.numpy(),  processed_speech=sr_audio.numpy(), fs=opt.hr_sampling_rate)
-    # ssnr_lr = pysepm.SNRseg(clean_speech=hr_audio.numpy(),  processed_speech=lr_audio.numpy(), fs=opt.hr_sampling_rate)
-
-    # Calculate PESQ
-    """ if hr_audio.dim() > 1:
-        hr_audio = hr_audio.squeeze()
-        sr_audio = sr_audio.squeeze()
-        for i in range(hr_audio.size(-2)):
-            p = []
-            h = hr_audio[i,:]
-            s = sr_audio[i,:]
-            try:
-                pesq = pysepm.pesq(aF.resample(h, orig_freq=opt.hr_sampling_rate, new_freq=16000).numpy(), aF.resample(s, orig_freq=opt.hr_sampling_rate, new_freq=16000).numpy(), 16000)
-                p.append(pesq)
-            except:
-                print('PESQ no utterance')
-
-        pesq = np.mean(p)
-    else:
-        try:
-            pesq = pysepm.pesq(aF.resample(hr_audio,orig_freq=opt.hr_sampling_rate, new_freq=16000).numpy(), aF.resample(sr_audio,orig_freq=opt.hr_sampling_rate, new_freq=16000).numpy(), 16000)
-        except:
-            pesq = 0 """
-
-    # Calculte STFT loss(LSD)
-    hr_stft = aF.spectrogram(
-        hr_audio,
-        n_fft=2 * opt.n_fft,
-        hop_length=2 * opt.hop_length,
-        win_length=2 * opt.win_length,
-        window=kbdwin(2 * opt.win_length).to(device),
-        center=opt.center,
-        pad=0,
-        power=2,
-        normalized=False,
-    )
-    sr_stft = aF.spectrogram(
-        sr_audio,
-        n_fft=2 * opt.n_fft,
-        hop_length=2 * opt.hop_length,
-        win_length=2 * opt.win_length,
-        window=kbdwin(2 * opt.win_length).to(device),
-        center=opt.center,
-        pad=0,
-        power=2,
-        normalized=False,
-    )
-    hr_stft_log = torch.log10(hr_stft + 1e-6)
-    sr_stft_log = torch.log10(sr_stft + 1e-6)
-    lsd = torch.sqrt(torch.mean((hr_stft_log - sr_stft_log) ** 2, dim=-2)).mean().item()
-
-    # Get highcut frequency
-    hf = int(1025 * (opt.lr_sampling_rate / opt.sr_sampling_rate))
-    sp = hr_stft_log
-    st = sr_stft_log
-    lsd = (sp - st).square().mean(dim=1).sqrt().mean()
-    lsd_hf = (sp[:, hf:, :] - st[:, hf:, :]).square().mean(dim=1).sqrt().mean()
-    lsd_lf = (sp[:, :hf, :] - st[:, :hf, :]).square().mean(dim=1).sqrt().mean()
-
-    return mse, snr_sr, snr_lr, 0, 0, 0, lsd, lsd_hf, lsd_lf
+    return snr, base_snr, lsd, base_lsd, lsd_hf, base_lsd_hf, lsd_lf, base_lsd_lf
 
 
 def kbdwin(N: int, beta: float = 12.0, device="cpu") -> torch.Tensor:

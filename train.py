@@ -102,13 +102,15 @@ signal.signal(signal.SIGINT, signal_handler)
 
 
 def eval_model():
-    err = []
-    snr = []
-    snr_seg = []
-    pesq = []
-    lsd = []
-    lsd_hf = []
-    lsd_lf = []
+    # Define lists to accumulate results
+    snr_list = []
+    base_snr_list = []
+    lsd_list = []
+    base_lsd_list = []
+    lsd_hf_list = []
+    base_lsd_hf_list = []
+    lsd_lf_list = []
+    base_lsd_lf_list = []
     for j, eval_data in enumerate(eval_dataloader):
         model.eval()
         lr_audio = eval_data["LR_audio"].cuda()
@@ -116,37 +118,40 @@ def eval_model():
         with torch.no_grad():
             _, sr_audio, _, _, _ = model.inference(lr_audio)
             (
-                _mse,
-                _snr_sr,
-                _snr_lr,
-                _ssnr_sr,
-                _ssnr_lr,
-                _pesq,
-                _lsd,
-                _lsd_hf,
-                _lsd_lf,
+                snr,
+                base_snr,
+                lsd,
+                base_lsd,
+                lsd_hf,
+                base_lsd_hf,
+                lsd_lf,
+                base_lsd_lf,
             ) = compute_matrics(
                 hr_audio.squeeze(), lr_audio.squeeze(), sr_audio.squeeze(), opt
             )
-            err.append(_mse)
-            snr.append((_snr_lr, _snr_sr))
-            snr_seg.append((_ssnr_lr, _ssnr_sr))
-            pesq.append(_pesq)
-            lsd.append(_lsd.item())
-            lsd_hf.append(_lsd_hf.item())
-            lsd_lf.append(_lsd_lf.item())
+            # Store metrics for each file
+            snr_list.append(snr)
+            base_snr_list.append(base_snr)
+            lsd_list.append(lsd)
+            base_lsd_list.append(base_lsd)
+            lsd_hf_list.append(lsd_hf)
+            base_lsd_hf_list.append(base_lsd_hf)
+            lsd_lf_list.append(lsd_lf)
+            base_lsd_lf_list.append(base_lsd_lf)
 
         if j >= opt.eval_size:
             break
 
     eval_result = {
-        "err": np.mean(err),
-        "snr": np.mean(snr),
-        "snr_seg": np.mean(snr_seg),
-        "pesq": np.mean(pesq),
-        "lsd": np.mean(lsd),
-        "lsd_hf": np.mean(lsd_hf),
-        "lsd_lf": np.mean(lsd_lf),
+        # Compute the mean of the metrics
+        "snr": torch.stack(snr_list, dim=0).mean(),
+        "base_snr": torch.stack(base_snr_list, dim=0).mean(),
+        "lsd": torch.stack(lsd_list, dim=0).mean(),
+        "base_lsd": torch.stack(base_lsd_list, dim=0).mean(),
+        "lsd_hf": torch.stack(lsd_hf_list, dim=0).mean(),
+        "base_lsd_hf": torch.stack(base_lsd_hf_list, dim=0).mean(),
+        "lsd_lf": torch.stack(lsd_lf_list, dim=0).mean(),
+        "base_lsd_lf": torch.stack(base_lsd_lf_list, dim=0).mean(),
     }
     with open(eval_path, "a") as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=eval_result.keys())
