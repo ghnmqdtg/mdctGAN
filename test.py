@@ -160,13 +160,19 @@ if __name__ == "__main__":
                 if epoch == 0:
                     # Save the audio files
                     sr_path = os.path.join(
-                        opt.checkpoints_dir, opt.name, f"test_{i}_up.wav"
+                        opt.checkpoints_dir,
+                        opt.name,
+                        f"{data['filename'][0][:-4]}_up.wav",
                     )
                     lr_path = os.path.join(
-                        opt.checkpoints_dir, opt.name, f"test_{i}_down.wav"
+                        opt.checkpoints_dir,
+                        opt.name,
+                        f"{data['filename'][0][:-4]}_down.wav",
                     )
                     hr_path = os.path.join(
-                        opt.checkpoints_dir, opt.name, f"test_{i}_orig.wav"
+                        opt.checkpoints_dir,
+                        opt.name,
+                        f"{data['filename'][0][:-4]}_orig.wav",
                     )
                     # Save audio in 16-bit PCM format using torchaudio
                     torchaudio.save(

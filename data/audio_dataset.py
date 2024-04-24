@@ -146,7 +146,7 @@ class AudioTestDataset(BaseDataset):
         # Initialize index to keep track of the current file
         self.index = 0
         # Initialize
-        raw_audio, audio_len = self.read_audio()
+        raw_audio, audio_len, filename = self.read_audio()
         seg_audio = self.post_processing(raw_audio)
 
     def name(self):
@@ -157,13 +157,14 @@ class AudioTestDataset(BaseDataset):
 
     def __getitem__(self, idx):
         self.index = idx
-        raw_audio, audio_len = self.read_audio()
+        raw_audio, audio_len, filename = self.read_audio()
         lr_audio, seg_audio = self.post_processing(raw_audio)
         return {
             "raw_audio": raw_audio,
             "lr_audio": lr_audio,
             "seg_audio": seg_audio,
             "auido_len": audio_len,
+            "filename": filename,
         }
 
     def get_files(self, file_path):
@@ -192,6 +193,7 @@ class AudioTestDataset(BaseDataset):
     def read_audio(self):
         audio_path = self.audio_files[self.index]
         raw_audio, self.in_sampling_rate = torchaudio.load(audio_path)
+        filename = os.path.basename(audio_path)
 
         # Check if the target sample rate is 48000 Hz
         # If not, resample the audio (original sample rate is 48000 Hz) to target sample rate
@@ -206,7 +208,7 @@ class AudioTestDataset(BaseDataset):
         audio_len = raw_audio.size(-1)
         raw_audio += 1e-4 - torch.mean(raw_audio)
         # print("Audio length:", audio_len)
-        return raw_audio.squeeze(0), audio_len
+        return raw_audio.squeeze(0), audio_len, filename
 
     def post_processing(self, raw_audio):
         if self.is_lr_input:

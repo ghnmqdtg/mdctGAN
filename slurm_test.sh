@@ -11,7 +11,7 @@
 # vctk_fintune_G4A3L3_56ngf_4x: 12kHz -> 48kHz
 # vctk_fintune_G4A3L3_56ngf_6x: 8kHz -> 48kHz
 
-python generate_audio.py \
+python test.py \
     --name mdctGAN/16000/2000 \
     --load_pretrain ./checkpoints/mdctGAN_2_to_16 \
     --lr_sampling_rate 2000 --sr_sampling_rate 16000 --hr_sampling_rate 16000 \
