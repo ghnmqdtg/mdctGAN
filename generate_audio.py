@@ -137,9 +137,9 @@ if __name__ == "__main__":
                     lsd_lf,
                     base_lsd_lf,
                 ) = compute_matrics(
-                    data["raw_audio"],
-                    data["lr_audio"][:, :audio_len],
-                    audio[:, :audio_len],
+                    data["raw_audio"].to(device),
+                    data["lr_audio"][:, :audio_len].to(device),
+                    audio[:, :audio_len].to(device),
                     opt,
                 )
 
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         base_lsd_hf = torch.stack(base_lsd_hf_list, dim=0).mean()
         lsd_lf = torch.stack(lsd_lf_list, dim=0).mean()
         base_lsd_lf = torch.stack(base_lsd_lf_list, dim=0).mean()
-        rtf = torch.tensor(rtf_list).mean()
+        rtf = torch.tensor(rtf_list).mean().to(device)
         rtf_reciprocal = 1 / rtf
         dict = {
             "snr": f"{snr.item():.2f}",
