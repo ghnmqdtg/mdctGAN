@@ -14,11 +14,21 @@ SAMPLE_RATES=(8 12 16 24)
 for INPUT_SR_IN_K in "${SAMPLE_RATES[@]}"
 do
     INPUT_SR=$(($INPUT_SR_IN_K * 1000))
+
+    if [ $INPUT_SR -eq 8000 ]; then
+        CHECKPOINTS=vctk_fintune_G4A3L3_56ngf_6x
+    elif [ $INPUT_SR -eq 12000 ]; then
+        CHECKPOINTS=vctk_fintune_G4A3L3_56ngf_4x
+    elif [ $INPUT_SR -eq 16000 ]; then
+        CHECKPOINTS=vctk_fintune_G4A3L3_56ngf_3x
+    elif [ $INPUT_SR -eq 24000 ]; then
+        CHECKPOINTS=vctk_fintune_G4A3L3_56ngf_2x
+    fi
     
     python test.py \
-        --name mdctGAN_${INPUT_SR_IN_K}_to_${OUTPUT_SR_IN_K} \
-        --load_pretrain ./checkpoints/mdctGAN_${INPUT_SR_IN_K}_to_${OUTPUT_SR_IN_K} \
-        --dataroot ./data/test.csv --batchSize 1 \
+        --name mdctGAN/${CHECKPOINTS} \
+        --load_pretrain mdctGAN/${CHECKPOINTS} \
+        --dataroot ./data/test_org_filtered.csv --batchSize 1 \
         --lr_sampling_rate $INPUT_SR --sr_sampling_rate $OUTPUT_SR --hr_sampling_rate $OUTPUT_SR \
         --gpu_id 0 --fp16 --nThreads 1 \
         --arcsinh_transform --abs_spectro --arcsinh_gain 1000 --center \
