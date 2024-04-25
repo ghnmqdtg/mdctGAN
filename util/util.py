@@ -203,8 +203,8 @@ def compute_matrics(hr_audio, lr_audio, sr_audio, opt):
     device = sr_audio.device
     hr_audio = hr_audio.to(device)
     lr_audio = lr_audio.to(device)
-    # Highcut frequency
-    hf = int(1025 * (opt.lr_sampling_rate / opt.sr_sampling_rate))
+    # Highcut frequency (513 is got from the 2 * opt.n_fft / 2 + 1)
+    hf = int(513 * (opt.lr_sampling_rate / opt.sr_sampling_rate))
 
     def cal_snr(pred, target):
         return (
@@ -232,7 +232,6 @@ def compute_matrics(hr_audio, lr_audio, sr_audio, opt):
     def cal_lsd(pred, target, hf):
         sp = torch.log10(STFTMag(pred).square().clamp(1e-8))
         st = torch.log10(STFTMag(target).square().clamp(1e-8))
-
         return (
             (sp - st).square().mean(dim=1).sqrt().mean(),
             (sp[:, hf:, :] - st[:, hf:, :]).square().mean(dim=1).sqrt().mean(),
