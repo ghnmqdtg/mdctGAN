@@ -123,7 +123,10 @@ if __name__ == "__main__":
                     audio = torch.cat(audio, dim=0).view(1, -1)
 
                 run_time = time.time() - start_time
-                rtf_list.append(run_time / lr_audio.shape[1] * opt.lr_sampling_rate)
+                rtf_list.append(
+                    run_time
+                    / ((lr_audio.shape[1] * lr_audio.shape[2]) / opt.sr_sampling_rate)
+                )
 
                 audio_len = int(data["auido_len"][0])
                 # Evaluate the matrics
