@@ -52,6 +52,7 @@ if __name__ == "__main__":
 
     # Initialize the setup
     opt = TrainOptions().parse()
+    opt.isTrain = False
     visualizer = Visualizer(opt)
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.get_train_dataloader()
@@ -81,6 +82,9 @@ if __name__ == "__main__":
 
         # Process each file in the dataset
         with torch.no_grad():
+            lr_audio = next(iter(dataset))["seg_audio"].to(device)
+            print(model.flops(lr_audio[0]))
+
             print(f"Processing {len(dataset)} files")
             # Process each file in the dataset
             for i, data in enumerate(tqdm(dataset)):
